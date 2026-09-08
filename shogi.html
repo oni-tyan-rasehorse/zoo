@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>しょうぎ どうぶつえん</title>
+<title>アニマルズのお将棋トレーニング</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
 <style>
@@ -416,6 +416,94 @@ button.reset-btn:hover{ background:#fff2cf; }
 }
 .promo-box button:hover{ background:#fff2cf; border-color:var(--tangerine); }
 
+.result-modal{
+  position:fixed; inset:0;
+  background:rgba(20,35,15,.6);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:30;
+}
+.result-modal.open{ display:flex; }
+.result-box{
+  position:relative;
+  overflow:hidden;
+  width:min(92vw, 420px);
+  padding:26px 24px 22px;
+  border-radius:20px;
+  border:4px solid var(--sand-line);
+  text-align:center;
+  font-family:var(--round-font);
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.result-box.win{ background:linear-gradient(180deg,#fff8de 0%,#ffe9ac 100%); }
+.result-box.lose{ background:linear-gradient(180deg,#eaf1f5 0%,#cfdce5 100%); }
+.result-animals{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin:8px 0 12px;
+  position:relative;
+  z-index:2;
+}
+.anim-item{ position:relative; display:inline-block; }
+.anim-item.celebrate{ animation:bounceCelebrate .6s ease-in-out infinite; }
+.anim-item.cry{ animation:cryShake 1.4s ease-in-out infinite; }
+.anim-item.photo img{
+  width:52px; height:52px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+  border:3px solid #fff;
+  box-shadow:0 3px 6px rgba(0,0,0,.35);
+  background:#eee;
+}
+.anim-item.cry.photo img{ filter:grayscale(.35) brightness(.92); }
+.tear-drop{
+  position:absolute; left:50%; top:72%;
+  transform:translateX(-50%);
+  font-size:14px;
+  animation:tearDrop 1.3s ease-in infinite;
+}
+.result-title{
+  font-size:20px; font-weight:800; margin:2px 0 4px;
+  position:relative; z-index:2; color:#4a2f00;
+}
+.result-sub{
+  font-size:13.5px; margin:0 0 16px; color:#6b4a20;
+  position:relative; z-index:2;
+}
+.result-box #playAgainBtn{ position:relative; z-index:2; }
+.confetti-layer{
+  position:absolute; inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.confetti-piece{
+  position:absolute;
+  top:-24px;
+  font-size:20px;
+  animation-name:confettiFall;
+  animation-timing-function:linear;
+  animation-fill-mode:forwards;
+}
+@keyframes bounceCelebrate{
+  0%,100%{ transform:translateY(0) rotate(-6deg); }
+  50%{ transform:translateY(-16px) rotate(6deg); }
+}
+@keyframes cryShake{
+  0%,100%{ transform:translateY(0) rotate(-3deg); }
+  50%{ transform:translateY(3px) rotate(3deg); }
+}
+@keyframes tearDrop{
+  0%{ transform:translateX(-50%) translateY(0); opacity:1; }
+  100%{ transform:translateX(-50%) translateY(26px); opacity:0; }
+}
+@keyframes confettiFall{
+  0%{ transform:translateY(-30px) rotate(0deg); opacity:1; }
+  100%{ transform:translateY(260px) rotate(360deg); opacity:0; }
+}
+
 @media (max-width: 720px){
   .board{ grid-template-columns:repeat(9, 34px); grid-template-rows:repeat(9, 37px);}
   .koma{ width:30px;height:33px; }
@@ -432,8 +520,8 @@ button.reset-btn:hover{ background:#fff2cf; }
 <body>
 <div class="wrap">
   <div class="title-block">
-    <h1>🐴 しょうぎ どうぶつえん 🐘</h1>
-    <p>王（馬）をつかまえたら勝ち！</p>
+    <h1>アニマルズのお将棋トレーニング</h1>
+    <p>競走馬をぶったおせ！！</p>
     <div class="legend">
       <span>🐴王</span><span>🐘角</span><span>🦅飛</span><span>🐻金</span>
       <span>🐺銀</span><span>🦓桂</span><span>🦒香</span><span>🐣歩</span>
@@ -444,8 +532,8 @@ button.reset-btn:hover{ background:#fff2cf; }
     <div class="field">
       <label for="modeSelect">対戦相手</label>
       <select id="modeSelect">
-        <option value="cpu">CPU</option>
-        <option value="pvp">2人で対戦</option>
+        <option value="cpu">敵アニマル</option>
+        <option value="pvp">ともだちと対戦</option>
       </select>
     </div>
     <div class="field" id="colorField">
@@ -456,7 +544,7 @@ button.reset-btn:hover{ background:#fff2cf; }
       </select>
     </div>
     <div class="field" id="difficultyField">
-      <label for="difficultySelect">CPUの強さ</label>
+      <label for="difficultySelect">敵アニマルの強さ</label>
       <select id="difficultySelect">
         <option value="easy">弱い</option>
         <option value="normal" selected>普通</option>
@@ -497,11 +585,21 @@ button.reset-btn:hover{ background:#fff2cf; }
 
 <div class="promo-modal" id="promoModal">
   <div class="promo-box">
-    <p>成りますか？</p>
+    <p>群れボスに成りますか？</p>
     <div class="row">
       <button id="promoYes">成る</button>
       <button id="promoNo">成らない</button>
     </div>
+  </div>
+</div>
+
+<div class="result-modal" id="resultModal">
+  <div class="result-box" id="resultBox">
+    <div class="confetti-layer" id="confettiLayer"></div>
+    <div class="result-animals" id="resultAnimals"></div>
+    <p class="result-title" id="resultTitle"></p>
+    <p class="result-sub" id="resultSub"></p>
+    <button class="apply-btn" id="playAgainBtn">🔄 もう一度あそぶ</button>
   </div>
 </div>
 
@@ -581,7 +679,8 @@ button.reset-btn:hover{ background:#fff2cf; }
     gameOver: false,
     winner:null,
     lastMove: null,
-    thinking:false
+    thinking:false,
+    resultShown:false
   };
 
   function cpuColor(){ return state.playerColor==='sente' ? 'gote' : 'sente'; }
@@ -796,6 +895,77 @@ button.reset-btn:hover{ background:#fff2cf; }
     renderMochigoma();
     renderPanels();
     renderStatus();
+    if(state.gameOver && !state.resultShown){
+      state.resultShown = true;
+      showResultModal();
+    }
+  }
+
+  function showResultModal(){
+    const outcome = state.mode==='cpu' ? (state.winner===state.playerColor ? 'win' : 'lose') : 'win';
+    const winnerLabel = state.winner==='sente' ? '先手' : '後手';
+
+    const box = document.getElementById('resultBox');
+    box.classList.remove('win','lose');
+    box.classList.add(outcome);
+
+    const titleEl = document.getElementById('resultTitle');
+    const subEl = document.getElementById('resultSub');
+    if(state.mode==='cpu'){
+      titleEl.textContent = outcome==='win' ? '🎉 やったね！かち！ 🎉' : '😢 まけちゃった…';
+      subEl.textContent = outcome==='win' ? `${winnerLabel}（あなた）のかち！` : `${winnerLabel}（CPU）のかち…`;
+    } else {
+      titleEl.textContent = '🎉 しょうぶあり！ 🎉';
+      subEl.textContent = `${winnerLabel}のかち！`;
+    }
+
+    const animalsEl = document.getElementById('resultAnimals');
+    animalsEl.innerHTML = '';
+    const animals = [
+      {name:'ライオン', keyword:'lion'},
+      {name:'ゾウ', keyword:'elephant'},
+      {name:'キリン', keyword:'giraffe'},
+      {name:'シマウマ', keyword:'zebra'},
+      {name:'クマ', keyword:'bear'},
+      {name:'オオカミ', keyword:'wolf'},
+      {name:'タカ', keyword:'eagle'},
+      {name:'ひよこ', keyword:'baby chick'}
+    ];
+    animals.forEach((a,i)=>{
+      const span = document.createElement('span');
+      span.className = 'anim-item photo ' + (outcome==='win' ? 'celebrate' : 'cry');
+      span.style.animationDelay = (i*0.08)+'s';
+      const img = document.createElement('img');
+      img.src = `https://loremflickr.com/160/160/${encodeURIComponent(a.keyword)}`;
+      img.alt = a.name;
+      img.loading = 'lazy';
+      span.appendChild(img);
+      if(outcome==='lose'){
+        const tear = document.createElement('span');
+        tear.className='tear-drop';
+        tear.textContent='💧';
+        tear.style.animationDelay = (i*0.08+0.3)+'s';
+        span.appendChild(tear);
+      }
+      animalsEl.appendChild(span);
+    });
+
+    const confettiLayer = document.getElementById('confettiLayer');
+    confettiLayer.innerHTML = '';
+    if(outcome==='win'){
+      const pieces = ['🎉','✨','🎊','⭐'];
+      for(let i=0;i<18;i++){
+        const c = document.createElement('span');
+        c.className='confetti-piece';
+        c.textContent = pieces[Math.floor(Math.random()*pieces.length)];
+        c.style.left = Math.random()*100+'%';
+        c.style.animationDelay = (Math.random()*1.2)+'s';
+        c.style.animationDuration = (1.4+Math.random()*1.2)+'s';
+        confettiLayer.appendChild(c);
+      }
+    }
+
+    document.getElementById('resultModal').classList.add('open');
   }
 
   function renderPanels(){
@@ -813,7 +983,7 @@ button.reset-btn:hover{ background:#fff2cf; }
       const winnerIsPlayer = state.mode==='cpu' && state.winner===state.playerColor;
       const winnerLabel = state.winner==='sente' ? '先手' : '後手';
       if(state.mode==='cpu'){
-        el.textContent = winnerIsPlayer ? `🎉 ${winnerLabel}（あなた）の勝ち！` : `${winnerLabel}（CPU）の勝ち…`;
+        el.textContent = winnerIsPlayer ? `🎉 ${winnerLabel}（あなた）の勝ち！` : `${winnerLabel}（敵アニマル）の勝ち…`;
       } else {
         el.textContent = `🎉 ${winnerLabel}の勝ち！`;
       }
@@ -1135,6 +1305,8 @@ button.reset-btn:hover{ background:#fff2cf; }
     state.winner = null;
     state.lastMove = null;
     state.thinking = false;
+    state.resultShown = false;
+    document.getElementById('resultModal').classList.remove('open');
     render();
     if(isCpuTurn()){
       scheduleCPUMove();
@@ -1144,6 +1316,7 @@ button.reset-btn:hover{ background:#fff2cf; }
   document.getElementById('resetBtn').addEventListener('click', resetGame);
   document.getElementById('applyBtn').addEventListener('click', resetGame);
   document.getElementById('modeSelect').addEventListener('change', updateSettingsVisibility);
+  document.getElementById('playAgainBtn').addEventListener('click', resetGame);
 
   updateSettingsVisibility();
   render();
