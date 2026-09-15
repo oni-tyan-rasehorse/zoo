@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>アニマルズのお将棋トレーニング</title>
+<title>しょうぎ どうぶつえん</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
 <style>
@@ -163,6 +163,18 @@ body::after{
 }
 .settings-bar button.apply-btn:hover{ filter:brightness(1.06); transform:translateY(-1px); }
 .settings-bar button.apply-btn:active{ transform:translateY(1px); border-bottom-width:1px; }
+.buddy-btn{
+  font-family:var(--round-font);
+  font-size:13px;
+  font-weight:700;
+  background:#fff;
+  color:var(--ink);
+  border:2px solid var(--sand-line);
+  border-radius:10px;
+  padding:5px 12px;
+  cursor:pointer;
+}
+.buddy-btn:hover{ background:#fff2cf; border-color:var(--tangerine); }
 
 .game-area{
   display:flex;
@@ -504,6 +516,127 @@ button.reset-btn:hover{ background:#fff2cf; }
   100%{ transform:translateY(260px) rotate(360deg); opacity:0; }
 }
 
+.anim-item.buddy-star{
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.25));
+}
+.anim-item.buddy-star.photo img{
+  width:72px; height:72px;
+  border-color:var(--sun);
+  box-shadow:0 0 0 3px var(--sun), 0 4px 10px rgba(0,0,0,.4);
+}
+.anim-item.buddy-star::after{
+  content:"⭐";
+  position:absolute;
+  top:-10px; right:-8px;
+  font-size:16px;
+}
+.buddy-caption{
+  font-size:12px;
+  color:#6b4a20;
+  margin:0 0 8px;
+  position:relative;
+  z-index:2;
+  font-weight:700;
+}
+
+.buddy-hero{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  margin:2px 0 8px;
+  z-index:2;
+}
+.buddy-hero img{
+  width:96px; height:96px;
+  border-radius:50%;
+  object-fit:cover;
+  display:block;
+  border:4px solid var(--sun);
+  box-shadow:0 6px 14px rgba(0,0,0,.4);
+  background:#eee;
+}
+.buddy-hero.celebrate img{ animation:bounceCelebrate .6s ease-in-out infinite; }
+.buddy-hero.cry img{
+  animation:cryShake 1.4s ease-in-out infinite;
+  filter:grayscale(.35) brightness(.92);
+  border-color:#9fb3c2;
+}
+.buddy-hero-bubble{
+  position:absolute;
+  top:-6px; right:calc(50% - 66px);
+  background:#fff;
+  color:#4a2f00;
+  font-size:12px;
+  font-weight:800;
+  padding:4px 10px;
+  border-radius:12px;
+  border:2px solid var(--sand-line);
+  white-space:nowrap;
+}
+.buddy-hero-bubble::after{
+  content:"";
+  position:absolute;
+  bottom:-7px; left:16px;
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:7px solid var(--sand-line);
+}
+
+.buddy-modal{
+  position:fixed; inset:0;
+  background:rgba(20,35,15,.6);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:40;
+  padding:16px;
+}
+.buddy-modal.open{ display:flex; }
+.buddy-box{
+  width:min(92vw, 420px);
+  max-height:80vh;
+  overflow-y:auto;
+  background:var(--paper);
+  border:4px solid var(--sand-line);
+  border-radius:18px;
+  padding:18px 18px 16px;
+  text-align:center;
+  font-family:var(--round-font);
+  box-shadow:0 16px 40px rgba(0,0,0,.5);
+}
+.buddy-modal-title{
+  font-size:16px;
+  font-weight:800;
+  color:#4a2f00;
+  margin:2px 0 14px;
+}
+.buddy-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(76px, 1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.buddy-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  background:#fff;
+  border:2px solid var(--sand-line);
+  border-radius:12px;
+  padding:10px 4px 8px;
+  cursor:pointer;
+  font-family:var(--round-font);
+}
+.buddy-card:hover{ background:#fff2cf; }
+.buddy-card.selected{
+  border-color:var(--tangerine);
+  box-shadow:0 0 0 3px rgba(232,118,58,.3);
+  background:#fff2cf;
+}
+.buddy-card .buddy-icon{ font-size:30px; }
+.buddy-card .buddy-name{ font-size:11px; color:#6b4a20; font-weight:700; }
+
 @media (max-width: 720px){
   .board{ grid-template-columns:repeat(9, 34px); grid-template-rows:repeat(9, 37px);}
   .koma{ width:30px;height:33px; }
@@ -520,7 +653,7 @@ button.reset-btn:hover{ background:#fff2cf; }
 <body>
 <div class="wrap">
   <div class="title-block">
-    <h1>アニマルズのお将棋トレーニング</h1>
+    <h1>🐴 アニマルズのお将棋トレーニング 🐘</h1>
     <p>競走馬をぶったおせ！！</p>
     <div class="legend">
       <span>🐴王</span><span>🐘角</span><span>🦅飛</span><span>🐻金</span>
@@ -533,7 +666,7 @@ button.reset-btn:hover{ background:#fff2cf; }
       <label for="modeSelect">対戦相手</label>
       <select id="modeSelect">
         <option value="cpu">敵アニマル</option>
-        <option value="pvp">ともだちと対戦</option>
+        <option value="pvp">2人で対戦</option>
       </select>
     </div>
     <div class="field" id="colorField">
@@ -550,6 +683,10 @@ button.reset-btn:hover{ background:#fff2cf; }
         <option value="normal" selected>普通</option>
         <option value="hard">強い</option>
       </select>
+    </div>
+    <div class="field">
+      <label>相棒</label>
+      <button class="buddy-btn" id="buddyBtn" type="button">🦁 ライオン</button>
     </div>
     <button class="apply-btn" id="applyBtn">この設定で対局開始</button>
   </div>
@@ -585,7 +722,7 @@ button.reset-btn:hover{ background:#fff2cf; }
 
 <div class="promo-modal" id="promoModal">
   <div class="promo-box">
-    <p>群れボスに成りますか？</p>
+    <p>成りますか？</p>
     <div class="row">
       <button id="promoYes">成る</button>
       <button id="promoNo">成らない</button>
@@ -596,10 +733,23 @@ button.reset-btn:hover{ background:#fff2cf; }
 <div class="result-modal" id="resultModal">
   <div class="result-box" id="resultBox">
     <div class="confetti-layer" id="confettiLayer"></div>
+    <div class="buddy-hero" id="buddyHero">
+      <img id="buddyHeroImg" alt="相棒">
+      <span class="buddy-hero-bubble" id="buddyHeroBubble"></span>
+    </div>
+    <p class="buddy-caption" id="buddyCaption"></p>
     <div class="result-animals" id="resultAnimals"></div>
     <p class="result-title" id="resultTitle"></p>
     <p class="result-sub" id="resultSub"></p>
     <button class="apply-btn" id="playAgainBtn">🔄 もう一度あそぶ</button>
+  </div>
+</div>
+
+<div class="buddy-modal" id="buddyModal">
+  <div class="buddy-box">
+    <p class="buddy-modal-title">🐾 相棒をえらぼう！</p>
+    <div class="buddy-grid" id="buddyGrid"></div>
+    <button class="reset-btn" id="buddyCloseBtn">とじる</button>
   </div>
 </div>
 
@@ -614,6 +764,51 @@ button.reset-btn:hover{ background:#fff2cf; }
   const ANIMAL_ICON = {
     P:'🐣', L:'🦒', N:'🦓', S:'🐺', G:'🐻', B:'🐘', R:'🦅', K:'🐴'
   };
+  const BUDDY_LIST = [
+    {id:'lion', icon:'🦁', name:'ライオン', wiki:'Lion'},
+    {id:'elephant', icon:'🐘', name:'ゾウ', wiki:'Elephant'},
+    {id:'giraffe', icon:'🦒', name:'キリン', wiki:'Giraffe'},
+    {id:'zebra', icon:'🦓', name:'シマウマ', wiki:'Plains zebra'},
+    {id:'bear', icon:'🐻', name:'クマ', wiki:'Brown bear'},
+    {id:'wolf', icon:'🐺', name:'オオカミ', wiki:'Gray wolf'},
+    {id:'eagle', icon:'🦅', name:'タカ', wiki:'Bald eagle'},
+    {id:'chick', icon:'🐣', name:'ひよこ', wiki:'Chicken'},
+    {id:'panda', icon:'🐼', name:'パンダ', wiki:'Giant panda'},
+    {id:'monkey', icon:'🐵', name:'サル', wiki:'Japanese macaque'},
+    {id:'penguin', icon:'🐧', name:'ペンギン', wiki:'Penguin'},
+    {id:'tiger', icon:'🐯', name:'トラ', wiki:'Tiger'}
+  ];
+  function buddyById(id){ return BUDDY_LIST.find(b=>b.id===id) || BUDDY_LIST[0]; }
+
+  // ---------- animal photo fetching (Wikipedia thumbnails, with emoji fallback) ----------
+  const ANIMAL_PHOTO_CACHE = {};
+  async function fetchAnimalPhoto(title){
+    if(Object.prototype.hasOwnProperty.call(ANIMAL_PHOTO_CACHE, title)) return ANIMAL_PHOTO_CACHE[title];
+    try{
+      const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=240&origin=*`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const pages = data && data.query && data.query.pages;
+      const page = pages && Object.values(pages)[0];
+      const thumb = page && page.thumbnail && page.thumbnail.source;
+      ANIMAL_PHOTO_CACHE[title] = thumb || null;
+      return thumb || null;
+    } catch(e){
+      return null;
+    }
+  }
+  function placeholderPhotoUrl(emoji){
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' rx='24' fill='#f4e3b8'/><text x='50%' y='56%' font-size='108' text-anchor='middle' dominant-baseline='middle'>${emoji}</text></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+  function setAnimalPhoto(img, wikiTitle, emojiFallback){
+    img.src = placeholderPhotoUrl(emojiFallback);
+    img.onerror = ()=>{ img.onerror = null; img.src = placeholderPhotoUrl(emojiFallback); };
+    fetchAnimalPhoto(wikiTitle).then(url=>{
+      if(url) img.src = url;
+    });
+  }
+
   const DROP_ORDER = ['R','B','G','S','N','L','P'];
   const PIECE_VALUE = {P:1,L:3,N:4,S:5,G:6,B:8,R:10,K:10000};
   const PROMOTED_VALUE = {P:6,L:6,N:6,S:6,B:10,R:12};
@@ -680,7 +875,8 @@ button.reset-btn:hover{ background:#fff2cf; }
     winner:null,
     lastMove: null,
     thinking:false,
-    resultShown:false
+    resultShown:false,
+    buddy:'lion'
   };
 
   function cpuColor(){ return state.playerColor==='sente' ? 'gote' : 'sente'; }
@@ -913,7 +1109,7 @@ button.reset-btn:hover{ background:#fff2cf; }
     const subEl = document.getElementById('resultSub');
     if(state.mode==='cpu'){
       titleEl.textContent = outcome==='win' ? '🎉 やったね！かち！ 🎉' : '😢 まけちゃった…';
-      subEl.textContent = outcome==='win' ? `${winnerLabel}（あなた）のかち！` : `${winnerLabel}（CPU）のかち…`;
+      subEl.textContent = outcome==='win' ? `${winnerLabel}（あなた）のかち！` : `${winnerLabel}（敵アニマル）のかち…`;
     } else {
       titleEl.textContent = '🎉 しょうぶあり！ 🎉';
       subEl.textContent = `${winnerLabel}のかち！`;
@@ -921,24 +1117,26 @@ button.reset-btn:hover{ background:#fff2cf; }
 
     const animalsEl = document.getElementById('resultAnimals');
     animalsEl.innerHTML = '';
-    const animals = [
-      {name:'ライオン', keyword:'lion'},
-      {name:'ゾウ', keyword:'elephant'},
-      {name:'キリン', keyword:'giraffe'},
-      {name:'シマウマ', keyword:'zebra'},
-      {name:'クマ', keyword:'bear'},
-      {name:'オオカミ', keyword:'wolf'},
-      {name:'タカ', keyword:'eagle'},
-      {name:'ひよこ', keyword:'baby chick'}
-    ];
-    animals.forEach((a,i)=>{
+    const supportingIds = ['lion','elephant','giraffe','zebra','bear','wolf','eagle','chick'];
+    const buddy = buddyById(state.buddy);
+    const list = supportingIds.filter(id=>id!==buddy.id).map(id=>buddyById(id));
+
+    const buddyCaptionEl = document.getElementById('buddyCaption');
+    buddyCaptionEl.textContent = `🐾 相棒の${buddy.icon} ${buddy.name}もいっしょに！`;
+
+    const heroEl = document.getElementById('buddyHero');
+    heroEl.classList.remove('celebrate','cry');
+    heroEl.classList.add(outcome==='win' ? 'celebrate' : 'cry');
+    setAnimalPhoto(document.getElementById('buddyHeroImg'), buddy.wiki, buddy.icon);
+    document.getElementById('buddyHeroBubble').textContent = outcome==='win' ? 'やったね！' : 'どんまい…';
+
+    list.forEach((a,i)=>{
       const span = document.createElement('span');
       span.className = 'anim-item photo ' + (outcome==='win' ? 'celebrate' : 'cry');
       span.style.animationDelay = (i*0.08)+'s';
       const img = document.createElement('img');
-      img.src = `https://loremflickr.com/160/160/${encodeURIComponent(a.keyword)}`;
       img.alt = a.name;
-      img.loading = 'lazy';
+      setAnimalPhoto(img, a.wiki, a.icon);
       span.appendChild(img);
       if(outcome==='lose'){
         const tear = document.createElement('span');
@@ -972,8 +1170,9 @@ button.reset-btn:hover{ background:#fff2cf; }
     document.getElementById('panel-sente').classList.toggle('active', state.turn==='sente' && !state.gameOver);
     document.getElementById('panel-gote').classList.toggle('active', state.turn==='gote' && !state.gameOver);
     const cc = state.mode==='cpu' ? cpuColor() : null;
-    document.getElementById('tag-sente').textContent = state.mode==='cpu' ? (cc==='sente'?'CPU':'あなた') : '';
-    document.getElementById('tag-gote').textContent = state.mode==='cpu' ? (cc==='gote'?'CPU':'あなた') : '';
+    const buddyIcon = buddyById(state.buddy).icon;
+    document.getElementById('tag-sente').textContent = state.mode==='cpu' ? (cc==='sente'?'敵アニマル':`${buddyIcon} あなた`) : '';
+    document.getElementById('tag-gote').textContent = state.mode==='cpu' ? (cc==='gote'?'敵アニマル':`${buddyIcon} あなた`) : '';
   }
 
   function renderStatus(){
@@ -989,12 +1188,12 @@ button.reset-btn:hover{ background:#fff2cf; }
       }
       el.classList.add('win');
     } else if(state.thinking){
-      el.textContent = 'CPUが考え中…🤔';
+      el.textContent = '敵アニマルが考え中…🤔';
       el.classList.add('thinking');
     } else {
       const turnLabel = state.turn==='sente' ? '先手' : '後手';
       if(state.mode==='cpu'){
-        el.textContent = state.turn===state.playerColor ? `${turnLabel}（あなた）の番です` : `${turnLabel}（CPU）の番です`;
+        el.textContent = state.turn===state.playerColor ? `${turnLabel}（あなた）の番です` : `${turnLabel}（敵アニマル）の番です`;
       } else {
         el.textContent = `${turnLabel}の番です`;
       }
@@ -1313,12 +1512,52 @@ button.reset-btn:hover{ background:#fff2cf; }
     }
   }
 
+  function renderBuddyBtn(){
+    const b = buddyById(state.buddy);
+    document.getElementById('buddyBtn').textContent = `${b.icon} ${b.name}`;
+  }
+
+  function renderBuddyGrid(){
+    const grid = document.getElementById('buddyGrid');
+    grid.innerHTML = '';
+    BUDDY_LIST.forEach(b=>{
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'buddy-card' + (state.buddy===b.id ? ' selected' : '');
+      const iconSpan = document.createElement('span');
+      iconSpan.className='buddy-icon';
+      iconSpan.textContent = b.icon;
+      const nameSpan = document.createElement('span');
+      nameSpan.className='buddy-name';
+      nameSpan.textContent = b.name;
+      card.appendChild(iconSpan);
+      card.appendChild(nameSpan);
+      card.addEventListener('click', ()=>{
+        state.buddy = b.id;
+        renderBuddyBtn();
+        renderBuddyGrid();
+        renderPanels();
+        document.getElementById('buddyModal').classList.remove('open');
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById('buddyBtn').addEventListener('click', ()=>{
+    renderBuddyGrid();
+    document.getElementById('buddyModal').classList.add('open');
+  });
+  document.getElementById('buddyCloseBtn').addEventListener('click', ()=>{
+    document.getElementById('buddyModal').classList.remove('open');
+  });
+
   document.getElementById('resetBtn').addEventListener('click', resetGame);
   document.getElementById('applyBtn').addEventListener('click', resetGame);
   document.getElementById('modeSelect').addEventListener('change', updateSettingsVisibility);
   document.getElementById('playAgainBtn').addEventListener('click', resetGame);
 
   updateSettingsVisibility();
+  renderBuddyBtn();
   render();
 })();
 </script>
