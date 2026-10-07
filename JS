@@ -24,12 +24,34 @@
   ];
   function buddyById(id){ return BUDDY_LIST.find(b=>b.id===id) || BUDDY_LIST[0]; }
 
+  const BOSS_HORSES = [
+    {name:'シンボリルドルフ', wiki:'Symboli Rudolf'},
+    {name:'オグリキャップ', wiki:'Oguri Cap'},
+    {name:'ディープインパクト', wiki:'Deep Impact (horse)'},
+    {name:'トウカイテイオー', wiki:'Tokai Teio'},
+    {name:'メジロマックイーン', wiki:'Mejiro McQueen'},
+    {name:'ナリタブライアン', wiki:'Narita Brian'},
+    {name:'キタサンブラック', wiki:'Kitasan Black'},
+    {name:'オルフェーヴル', wiki:'Orfevre'},
+    {name:'ウオッカ', wiki:'Vodka (horse)'},
+    {name:'ジェンティルドンナ', wiki:'Gentildonna'},
+    {name:'ゴールドシップ', wiki:'Gold Ship'},
+    {name:'テイエムオペラオー', wiki:'T M Opera O'},
+    {name:'サイレンススズカ', wiki:'Silence Suzuka'},
+    {name:'スペシャルウィーク', wiki:'Special Week (horse)'},
+    {name:'アーモンドアイ', wiki:'Almond Eye'},
+    {name:'タイキシャトル', wiki:'Taiki Shuttle'}
+  ];
+  function pickBossHorse(){
+    return BOSS_HORSES[Math.floor(Math.random()*BOSS_HORSES.length)];
+  }
+
   // ---------- animal photo fetching (Wikipedia thumbnails, with emoji fallback) ----------
   const ANIMAL_PHOTO_CACHE = {};
   async function fetchAnimalPhoto(title){
     if(Object.prototype.hasOwnProperty.call(ANIMAL_PHOTO_CACHE, title)) return ANIMAL_PHOTO_CACHE[title];
     try{
-      const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=240&origin=*`;
+      const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=240&redirects=1&origin=*`;
       const res = await fetch(url);
       const data = await res.json();
       const pages = data && data.query && data.query.pages;
@@ -57,6 +79,250 @@
   const PIECE_VALUE = {P:1,L:3,N:4,S:5,G:6,B:8,R:10,K:10000};
   const PROMOTED_VALUE = {P:6,L:6,N:6,S:6,B:10,R:12};
   const WIN_SCORE = 1000000;
+
+  // ---------- animal cry sounds (richer synthesized sounds, no audio files needed) ----------
+  let audioCtx = null;
+  function getAudioCtx(){
+    try{
+      if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if(audioCtx.state === 'suspended'){ audioCtx.resume().catch(()=>{}); }
+      return audioCtx;
+    } catch(e){
+      return null;
+    }
+  }
+
+  function makeNoiseBuffer(ctx, duration){
+    const size = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<size;i++){ data[i] = Math.random()*2 - 1; }
+    return buffer;
+  }
+  function makeDistortionCurve(amount){
+    const k = typeof amount==='number' ? amount : 30;
+    const n = 44100;
+    const curve = new Float32Array(n);
+    const deg = Math.PI/180;
+    for(let i=0;i<n;i++){
+      const x = i*2/n - 1;
+      curve[i] = (3+k)*x*20*deg / (Math.PI + k*Math.abs(x));
+    }
+    return curve;
+  }
+  function pulseEnv(gainNode, now, attack, peak, holdTo, sustain, end){
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.exponentialRampToValueAtTime(peak, now+attack);
+    if(holdTo!==undefined && sustain!==undefined){
+      gainNode.gain.exponentialRampToValueAtTime(sustain, holdTo);
+    }
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, end);
+  }
+
+  function cryChick(ctx, now){
+    for(let i=0;i<3;i++){
+      const t0 = now + i*0.16;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1000, t0);
+      osc.frequency.exponentialRampToValueAtTime(1800, t0+0.09);
+      osc.frequency.exponentialRampToValueAtTime(1300, t0+0.14);
+      pulseEnv(gain, t0, 0.015, 0.24, t0+0.07, 0.12, t0+0.15);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+0.17);
+    }
+  }
+
+  function cryGiraffe(ctx, now){
+    const dur = 1.0;
+    const osc = ctx.createOscillator();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, now);
+    osc.frequency.exponentialRampToValueAtTime(95, now+dur);
+    lfo.frequency.value = 4.5; lfoGain.gain.value = 5;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    pulseEnv(gain, now, 0.2, 0.18, now+dur*0.6, 0.08, now+dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); lfo.start(now);
+    osc.stop(now+dur+0.05); lfo.stop(now+dur+0.05);
+  }
+
+  function cryZebra(ctx, now){
+    for(let i=0;i<3;i++){
+      const t0 = now + i*0.19;
+      const d = 0.18;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(360+i*30, t0);
+      osc.frequency.exponentialRampToValueAtTime(680+i*30, t0+d*0.55);
+      osc.frequency.exponentialRampToValueAtTime(420+i*30, t0+d);
+      pulseEnv(gain, t0, 0.02, 0.26, t0+d*0.5, 0.1, t0+d);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t0); osc.stop(t0+d+0.02);
+    }
+    const noiseDur = 0.85;
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, noiseDur);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 550; bp.Q.value = 0.6;
+    const ng = ctx.createGain();
+    pulseEnv(ng, now, 0.05, 0.07, now+noiseDur*0.6, 0.03, now+noiseDur);
+    noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+    noise.start(now); noise.stop(now+noiseDur);
+  }
+
+  function cryWolf(ctx, now){
+    const dur = 1.7;
+    const osc = ctx.createOscillator();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    const delay = ctx.createDelay();
+    const feedback = ctx.createGain();
+    const delayFilter = ctx.createBiquadFilter();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.linearRampToValueAtTime(560, now+dur*0.3);
+    osc.frequency.linearRampToValueAtTime(420, now+dur*0.65);
+    osc.frequency.linearRampToValueAtTime(300, now+dur);
+    lp.type = 'lowpass'; lp.frequency.value = 1100;
+    pulseEnv(gain, now, 0.3, 0.26, now+dur*0.75, 0.09, now+dur);
+    delay.delayTime.value = 0.24;
+    feedback.gain.value = 0.32;
+    delayFilter.type = 'lowpass'; delayFilter.frequency.value = 1400;
+    osc.connect(lp); lp.connect(gain);
+    gain.connect(ctx.destination);
+    gain.connect(delay); delay.connect(delayFilter); delayFilter.connect(feedback); feedback.connect(delay);
+    delay.connect(ctx.destination);
+    osc.start(now); osc.stop(now+dur+0.4);
+  }
+
+  function cryBear(ctx, now){
+    const dur = 0.9;
+    const osc = ctx.createOscillator();
+    const shaper = ctx.createWaveShaper();
+    const makeup = ctx.createGain();
+    const lp = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    shaper.curve = makeDistortionCurve(28);
+    makeup.gain.value = 3.2; // the waveshaper curve attenuates the signal a lot; compensate
+    lp.type = 'lowpass'; lp.frequency.value = 650;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(130, now);
+    osc.frequency.linearRampToValueAtTime(75, now+dur);
+    lfo.frequency.value = 13; lfoGain.gain.value = 10;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    pulseEnv(gain, now, 0.1, 0.55, now+dur*0.6, 0.18, now+dur);
+    osc.connect(shaper); shaper.connect(makeup); makeup.connect(lp); lp.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); lfo.start(now);
+    osc.stop(now+dur+0.05); lfo.stop(now+dur+0.05);
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, dur);
+    const nlp = ctx.createBiquadFilter();
+    nlp.type = 'lowpass'; nlp.frequency.value = 350;
+    const ng = ctx.createGain();
+    pulseEnv(ng, now, 0.12, 0.22, now+dur*0.6, 0.07, now+dur);
+    noise.connect(nlp); nlp.connect(ng); ng.connect(ctx.destination);
+    noise.start(now); noise.stop(now+dur);
+  }
+
+  function cryElephant(ctx, now){
+    const dur = 1.1;
+    const osc = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    osc.type = 'sawtooth'; osc2.type = 'square';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.linearRampToValueAtTime(440, now+0.22);
+    osc.frequency.linearRampToValueAtTime(260, now+dur);
+    osc2.frequency.setValueAtTime(90, now);
+    osc2.frequency.linearRampToValueAtTime(220, now+0.22);
+    osc2.frequency.linearRampToValueAtTime(130, now+dur);
+    lfo.frequency.value = 20; lfoGain.gain.value = 16;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    pulseEnv(gain, now, 0.07, 0.28, now+dur*0.6, 0.11, now+dur);
+    osc.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc2.start(now); lfo.start(now);
+    osc.stop(now+dur+0.05); osc2.stop(now+dur+0.05); lfo.stop(now+dur+0.05);
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, 0.18);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 650; bp.Q.value = 0.8;
+    const ng = ctx.createGain();
+    pulseEnv(ng, now, 0.02, 0.17, now+0.1, 0.05, now+0.18);
+    noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+    noise.start(now); noise.stop(now+0.18);
+  }
+
+  function cryEagle(ctx, now){
+    const dur = 0.6;
+    const noise = ctx.createBufferSource();
+    noise.buffer = makeNoiseBuffer(ctx, dur);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(3200, now);
+    bp.frequency.exponentialRampToValueAtTime(1700, now+dur);
+    bp.Q.value = 7;
+    const ng = ctx.createGain();
+    pulseEnv(ng, now, 0.02, 0.2, now+dur*0.5, 0.06, now+dur);
+    noise.connect(bp); bp.connect(ng); ng.connect(ctx.destination);
+    noise.start(now); noise.stop(now+dur);
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(2800, now);
+    osc.frequency.exponentialRampToValueAtTime(1300, now+dur);
+    pulseEnv(gain, now, 0.02, 0.16, now+dur*0.5, 0.04, now+dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); osc.stop(now+dur+0.03);
+  }
+
+  function cryHorse(ctx, now){
+    const dur = 1.1;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(900, now+0.12);
+    osc.frequency.exponentialRampToValueAtTime(330, now+dur);
+    lfo.frequency.value = 26; lfoGain.gain.value = 55;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    pulseEnv(gain, now, 0.05, 0.26, now+dur*0.65, 0.08, now+dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(now); lfo.start(now);
+    osc.stop(now+dur+0.05); lfo.stop(now+dur+0.05);
+  }
+
+  const CRY_FUNCTIONS = {
+    P: cryChick, L: cryGiraffe, N: cryZebra, S: cryWolf,
+    G: cryBear, B: cryElephant, R: cryEagle, K: cryHorse
+  };
+  function playAnimalCry(pieceType){
+    if(!state.soundOn) return;
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const fn = CRY_FUNCTIONS[pieceType];
+    if(!fn) return;
+    try{
+      fn(ctx, ctx.currentTime);
+    } catch(e){ /* ignore audio errors */ }
+  }
 
   function forwardDir(owner){ return owner==='sente' ? -1 : 1; }
 
@@ -120,7 +386,9 @@
     lastMove: null,
     thinking:false,
     resultShown:false,
-    buddy:'lion'
+    buddy:'lion',
+    soundOn:true,
+    bossName:pickBossHorse()
   };
 
   function cpuColor(){ return state.playerColor==='sente' ? 'gote' : 'sente'; }
@@ -353,10 +621,23 @@
     const subEl = document.getElementById('resultSub');
     if(state.mode==='cpu'){
       titleEl.textContent = outcome==='win' ? '🎉 やったね！かち！ 🎉' : '😢 まけちゃった…';
-      subEl.textContent = outcome==='win' ? `${winnerLabel}（あなた）のかち！` : `${winnerLabel}（敵アニマル）のかち…`;
+      subEl.textContent = outcome==='win' ? `${winnerLabel}（あなた）のかち！` : `${winnerLabel}（${state.bossName.name}）のかち…`;
     } else {
       titleEl.textContent = '🎉 しょうぶあり！ 🎉';
       subEl.textContent = `${winnerLabel}のかち！`;
+    }
+
+    const bossResultEl = document.getElementById('bossResult');
+    if(state.mode==='cpu' && state.bossName){
+      bossResultEl.style.display = '';
+      bossResultEl.classList.remove('win','lose');
+      bossResultEl.classList.add(outcome);
+      document.getElementById('bossResultLabel').textContent = outcome==='win' ? '👑 ボスをたおした！' : '👑 ボスには勝てなかった…';
+      document.getElementById('bossResultBadge').textContent = outcome==='win' ? '💥' : '🏆';
+      document.getElementById('bossResultName').textContent = state.bossName.name;
+      setAnimalPhoto(document.getElementById('bossResultImg'), state.bossName.wiki, '🐴');
+    } else {
+      bossResultEl.style.display = 'none';
     }
 
     const animalsEl = document.getElementById('resultAnimals');
@@ -415,8 +696,8 @@
     document.getElementById('panel-gote').classList.toggle('active', state.turn==='gote' && !state.gameOver);
     const cc = state.mode==='cpu' ? cpuColor() : null;
     const buddyIcon = buddyById(state.buddy).icon;
-    document.getElementById('tag-sente').textContent = state.mode==='cpu' ? (cc==='sente'?'敵アニマル':`${buddyIcon} あなた`) : '';
-    document.getElementById('tag-gote').textContent = state.mode==='cpu' ? (cc==='gote'?'敵アニマル':`${buddyIcon} あなた`) : '';
+    document.getElementById('tag-sente').textContent = state.mode==='cpu' ? (cc==='sente'?`👑 ${state.bossName.name}`:`${buddyIcon} あなた`) : '';
+    document.getElementById('tag-gote').textContent = state.mode==='cpu' ? (cc==='gote'?`👑 ${state.bossName.name}`:`${buddyIcon} あなた`) : '';
   }
 
   function renderStatus(){
@@ -426,18 +707,18 @@
       const winnerIsPlayer = state.mode==='cpu' && state.winner===state.playerColor;
       const winnerLabel = state.winner==='sente' ? '先手' : '後手';
       if(state.mode==='cpu'){
-        el.textContent = winnerIsPlayer ? `🎉 ${winnerLabel}（あなた）の勝ち！` : `${winnerLabel}（敵アニマル）の勝ち…`;
+        el.textContent = winnerIsPlayer ? `🎉 ${winnerLabel}（あなた）の勝ち！` : `${winnerLabel}（${state.bossName.name}）の勝ち…`;
       } else {
         el.textContent = `🎉 ${winnerLabel}の勝ち！`;
       }
       el.classList.add('win');
     } else if(state.thinking){
-      el.textContent = '敵アニマルが考え中…🤔';
+      el.textContent = `${state.bossName.name}が考え中…🤔`;
       el.classList.add('thinking');
     } else {
       const turnLabel = state.turn==='sente' ? '先手' : '後手';
       if(state.mode==='cpu'){
-        el.textContent = state.turn===state.playerColor ? `${turnLabel}（あなた）の番です` : `${turnLabel}（敵アニマル）の番です`;
+        el.textContent = state.turn===state.playerColor ? `${turnLabel}（あなた）の番です` : `${turnLabel}（${state.bossName.name}）の番です`;
       } else {
         el.textContent = `${turnLabel}の番です`;
       }
@@ -605,6 +886,7 @@
     const piece = board[fromRow][fromCol];
     const captured = board[toRow][toCol];
     const mover = piece.owner;
+    playAnimalCry(piece.type);
     board[toRow][toCol] = { type:piece.type, owner:piece.owner, promoted: piece.promoted || promote };
     board[fromRow][fromCol] = null;
     if(captured){
@@ -618,6 +900,7 @@
   }
 
   function applyDropDirect(type,row,col,owner){
+    playAnimalCry(type);
     state.board[row][col] = { type, owner, promoted:false };
     state.captured[owner][type] -= 1;
     if(state.captured[owner][type] <= 0) delete state.captured[owner][type];
@@ -749,11 +1032,31 @@
     state.lastMove = null;
     state.thinking = false;
     state.resultShown = false;
+    state.bossName = state.mode==='cpu' ? pickBossHorse() : null;
     document.getElementById('resultModal').classList.remove('open');
     render();
-    if(isCpuTurn()){
+    if(state.mode==='cpu'){
+      showBossIntro(()=>{
+        if(isCpuTurn()){ scheduleCPUMove(); }
+      });
+    } else if(isCpuTurn()){
       scheduleCPUMove();
     }
+  }
+
+  function showBossIntro(onDone){
+    const boss = state.bossName;
+    document.getElementById('bossIntroName').textContent = boss.name;
+    setAnimalPhoto(document.getElementById('bossIntroImg'), boss.wiki, '🐴');
+    const modal = document.getElementById('bossIntroModal');
+    modal.classList.add('open');
+    const btn = document.getElementById('bossIntroStartBtn');
+    function onStart(){
+      modal.classList.remove('open');
+      btn.removeEventListener('click', onStart);
+      if(onDone) onDone();
+    }
+    btn.addEventListener('click', onStart);
   }
 
   function renderBuddyBtn(){
@@ -799,6 +1102,15 @@
   document.getElementById('applyBtn').addEventListener('click', resetGame);
   document.getElementById('modeSelect').addEventListener('change', updateSettingsVisibility);
   document.getElementById('playAgainBtn').addEventListener('click', resetGame);
+  document.getElementById('soundToggleBtn').addEventListener('click', ()=>{
+    state.soundOn = !state.soundOn;
+    document.getElementById('soundToggleBtn').textContent = state.soundOn ? '🔊 音' : '🔇 音';
+    if(state.soundOn){ getAudioCtx(); }
+  });
+
+  ['pointerdown','click','keydown','touchstart'].forEach(evName=>{
+    document.addEventListener(evName, getAudioCtx, {once:true, passive:true});
+  });
 
   updateSettingsVisibility();
   renderBuddyBtn();
