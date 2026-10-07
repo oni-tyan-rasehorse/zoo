@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>アニマルズのお将棋トレーニング</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Shippori+Mincho:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Shippori+Mincho:wght@600&family=Dela+Gothic+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -63,6 +63,7 @@
       </div>
       <div class="controls">
         <button class="reset-btn" id="resetBtn"> はじめから</button>
+        <button class="reset-btn" id="soundToggleBtn" type="button">🔊 音</button>
       </div>
       <div class="status" id="status"></div>
     </div>
@@ -90,6 +91,14 @@
 <div class="result-modal" id="resultModal">
   <div class="result-box" id="resultBox">
     <div class="confetti-layer" id="confettiLayer"></div>
+    <div class="boss-result" id="bossResult">
+      <p class="boss-result-label" id="bossResultLabel"></p>
+      <div class="boss-result-photo-wrap">
+        <img id="bossResultImg" alt="ボス">
+        <span class="boss-result-badge" id="bossResultBadge"></span>
+      </div>
+      <p class="boss-result-name" id="bossResultName"></p>
+    </div>
     <div class="buddy-hero" id="buddyHero">
       <img id="buddyHeroImg" alt="相棒">
       <span class="buddy-hero-bubble" id="buddyHeroBubble"></span>
@@ -107,6 +116,19 @@
     <p class="buddy-modal-title">🐾 相棒をえらぼう！</p>
     <div class="buddy-grid" id="buddyGrid"></div>
     <button class="reset-btn" id="buddyCloseBtn">とじる</button>
+  </div>
+</div>
+
+<div class="boss-intro-modal" id="bossIntroModal">
+  <div class="boss-intro-box" id="bossIntroBox">
+    <div class="boss-intro-rays"></div>
+    <p class="boss-intro-label">👑 BOSS 登場！</p>
+    <div class="boss-intro-photo-wrap">
+      <img id="bossIntroImg" alt="ボス">
+    </div>
+    <p class="boss-intro-name" id="bossIntroName"></p>
+    <p class="boss-intro-sub">きみの相棒と勝負だ！</p>
+    <button class="apply-btn" id="bossIntroStartBtn">⚔️ たたかう！</button>
   </div>
 </div>
 
