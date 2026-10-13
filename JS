@@ -758,7 +758,7 @@
         const piece = state.board[r][c];
         if(piece){
           const komaEl = document.createElement('div');
-          komaEl.className = 'koma ' + piece.owner + (piece.promoted?' promoted':'');
+          komaEl.className = 'koma ' + piece.owner + (piece.promoted?' promoted':'') + (piece.type==='P'?' piece-pawn':'') + (piece.type==='K'?(piece.owner==='sente'?' piece-lion':' piece-horse'):'');
           if(state.selected && state.selected.kind==='board' && state.selected.row===r && state.selected.col===c){
             komaEl.classList.add('selected');
           }
@@ -797,7 +797,7 @@
           wrap.classList.add('selected');
         }
         const koma = document.createElement('div');
-        koma.className='koma '+owner;
+        koma.className='koma '+owner+(type==='P'?' piece-pawn':'');
         const body = document.createElement('div');
         body.className='body';
         const span=document.createElement('span');
