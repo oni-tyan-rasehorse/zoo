@@ -67,6 +67,13 @@
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' rx='24' fill='#f4e3b8'/><text x='50%' y='56%' font-size='108' text-anchor='middle' dominant-baseline='middle'>${emoji}</text></svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
+  // 競走馬の写真は著作権の都合で使わず、真っ黒な画像を表示する
+  const BLACK_PHOTO_URL = 'data:image/svg+xml;utf8,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='100%' height='100%' fill='#000'/></svg>");
+  function setBossBlackPhoto(img){
+    img.onerror = null;
+    img.src = BLACK_PHOTO_URL;
+  }
+
   function setAnimalPhoto(img, wikiTitle, emojiFallback){
     img.src = placeholderPhotoUrl(emojiFallback);
     img.onerror = ()=>{ img.onerror = null; img.src = placeholderPhotoUrl(emojiFallback); };
@@ -388,6 +395,7 @@
     resultShown:false,
     buddy:'lion',
     soundOn:true,
+    checkOwner:null,
     bossName:pickBossHorse()
   };
 
@@ -598,7 +606,84 @@
   }
 
   // ---------- rendering ----------
+  // ---------- 王手（check）判定と演出 ----------
+  function isInCheck(board, owner){
+    let kr=-1, kc=-1;
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        const p = board[r][c];
+        if(p && p.type==='K' && p.owner===owner){ kr=r; kc=c; }
+      }
+    }
+    if(kr<0) return false;
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        const p = board[r][c];
+        if(!p || p.owner===owner) continue;
+        const moves = pieceMoves(board, r, c);
+        if(moves.some(m=>m.row===kr && m.col===kc)) return true;
+      }
+    }
+    return false;
+  }
+
+  let checkBannerTimer = null;
+  function showCheckBanner(){
+    let el = document.getElementById('checkBanner');
+    if(!el){
+      // shogi.html が古くてもバナーが出るように、無ければ自動で作る
+      el = document.createElement('div');
+      el.id = 'checkBanner';
+      el.className = 'check-banner';
+      el.innerHTML = '<span>王手！</span>';
+      document.body.appendChild(el);
+    }
+    el.classList.remove('show');
+    void el.offsetWidth; // アニメーションを最初からやり直す
+    el.classList.add('show');
+    clearTimeout(checkBannerTimer);
+    checkBannerTimer = setTimeout(()=>el.classList.remove('show'), 1700);
+  }
+  function playCheckSound(){
+    if(!state.soundOn) return;
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    try{
+      const now = ctx.currentTime;
+      // 低いドスン
+      const o1 = ctx.createOscillator(); const g1 = ctx.createGain();
+      o1.type = 'sine';
+      o1.frequency.setValueAtTime(140, now);
+      o1.frequency.exponentialRampToValueAtTime(45, now+0.4);
+      g1.gain.setValueAtTime(0.0001, now);
+      g1.gain.exponentialRampToValueAtTime(0.7, now+0.02);
+      g1.gain.exponentialRampToValueAtTime(0.0001, now+0.5);
+      o1.connect(g1); g1.connect(ctx.destination);
+      o1.start(now); o1.stop(now+0.55);
+      // 鋭い警告音（2連）
+      [0.08, 0.26].forEach(dt=>{
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'square';
+        o.frequency.setValueAtTime(880, now+dt);
+        o.frequency.setValueAtTime(660, now+dt+0.07);
+        g.gain.setValueAtTime(0.0001, now+dt);
+        g.gain.exponentialRampToValueAtTime(0.22, now+dt+0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, now+dt+0.16);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(now+dt); o.stop(now+dt+0.18);
+      });
+    } catch(e){ /* ignore */ }
+  }
+  function announceCheckIfAny(){
+    if(state.gameOver) return;
+    if(isInCheck(state.board, state.turn)){
+      try{ showCheckBanner(); } catch(e){ /* 演出の失敗でゲームを止めない */ }
+      try{ playCheckSound(); } catch(e){ /* 同上 */ }
+    }
+  }
+
   function render(){
+    state.checkOwner = (!state.gameOver && isInCheck(state.board, state.turn)) ? state.turn : null;
     renderBoard();
     renderMochigoma();
     renderPanels();
@@ -635,7 +720,7 @@
       document.getElementById('bossResultLabel').textContent = outcome==='win' ? '👑 ボスをたおした！' : '👑 ボスには勝てなかった…';
       document.getElementById('bossResultBadge').textContent = outcome==='win' ? '💥' : '🏆';
       document.getElementById('bossResultName').textContent = state.bossName.name;
-      setAnimalPhoto(document.getElementById('bossResultImg'), state.bossName.wiki, '🐴');
+      setBossBlackPhoto(document.getElementById('bossResultImg'));
     } else {
       bossResultEl.style.display = 'none';
     }
@@ -723,6 +808,7 @@
         el.textContent = `${turnLabel}の番です`;
       }
     }
+    if(!state.gameOver && state.checkOwner){ el.textContent += ' ⚠️王手！'; }
     document.getElementById('board').classList.toggle('locked', state.thinking || isCpuTurn());
   }
 
@@ -758,7 +844,7 @@
         const piece = state.board[r][c];
         if(piece){
           const komaEl = document.createElement('div');
-          komaEl.className = 'koma ' + piece.owner + (piece.promoted?' promoted':'') + (piece.type==='P'?' piece-pawn':'') + (piece.type==='K'?(piece.owner==='sente'?' piece-lion':' piece-horse'):'');
+          komaEl.className = 'koma ' + piece.owner + (piece.promoted?' promoted':'') + (piece.type==='P'?' piece-pawn':'') + (piece.type==='K'?(piece.owner==='sente'?' piece-lion':' piece-horse'):'') + (piece.type==='G'?' piece-bear':'') + (piece.type==='S'?' piece-wolf':'') + (piece.type==='K' && state.checkOwner===piece.owner ? ' in-check':'');
           if(state.selected && state.selected.kind==='board' && state.selected.row===r && state.selected.col===c){
             komaEl.classList.add('selected');
           }
@@ -797,7 +883,7 @@
           wrap.classList.add('selected');
         }
         const koma = document.createElement('div');
-        koma.className='koma '+owner+(type==='P'?' piece-pawn':'');
+        koma.className='koma '+owner+(type==='P'?' piece-pawn':'')+(type==='G'?' piece-bear':'')+(type==='S'?' piece-wolf':'');
         const body = document.createElement('div');
         body.className='body';
         const span=document.createElement('span');
@@ -897,6 +983,7 @@
     clearSelection();
     if(!won){ state.turn = mover==='sente' ? 'gote' : 'sente'; }
     render();
+    if(!won) announceCheckIfAny();
   }
 
   function applyDropDirect(type,row,col,owner){
@@ -908,6 +995,7 @@
     clearSelection();
     state.turn = owner==='sente' ? 'gote' : 'sente';
     render();
+    announceCheckIfAny();
   }
 
   function performMove(fromRow, fromCol, toRow, toCol){
@@ -1047,7 +1135,7 @@
   function showBossIntro(onDone){
     const boss = state.bossName;
     document.getElementById('bossIntroName').textContent = boss.name;
-    setAnimalPhoto(document.getElementById('bossIntroImg'), boss.wiki, '🐴');
+    setBossBlackPhoto(document.getElementById('bossIntroImg'));
     const modal = document.getElementById('bossIntroModal');
     modal.classList.add('open');
     const btn = document.getElementById('bossIntroStartBtn');
